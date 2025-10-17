@@ -2,46 +2,69 @@
 #include <iostream>
 #include <thread>
 #include <chrono>
+#include <csignal>
+#include <atomic>
 #include <nlohmann/json.hpp>
 
 using json = nlohmann::json;
 
+std::atomic<bool> running(true);
+
+void signal_handler(int signal) {
+    running = false;
+}
+
 int main() {    
+    std::signal(SIGINT, signal_handler);
+    std::signal(SIGTERM, signal_handler);
+    
     try {
-        zmq_simple::Publisher pub("test_json", zmq_simple::Transport::IPC);
+        zmq_simple::Publisher pub("A_publisher", zmq_simple::Transport::IPC);
+        zmq_simple::Subscriber sub_b("B_publisher", zmq_simple::Transport::IPC);
+        zmq_simple::Subscriber sub_c("C_publisher", zmq_simple::Transport::IPC);
         
+        sub_b.subscribe("");
+        sub_c.subscribe("");
+        
+        sub_b.start_loop([](const std::string& topic, const std::vector<uint8_t>& data) {
+            try {
+                json received = json::parse(data.begin(), data.end());
+                std::cout << "[B→A] " << received.dump() << std::endl;
+            } catch (const json::exception& e) {
+                std::cerr << "解析错误: " << e.what() << std::endl;
+            }
+        });
+        
+        sub_c.start_loop([](const std::string& topic, const std::vector<uint8_t>& data) {
+            try {
+                json received = json::parse(data.begin(), data.end());
+                std::cout << "[C→A] " << received.dump() << std::endl;
+            } catch (const json::exception& e) {
+                std::cerr << "解析错误: " << e.what() << std::endl;
+            }
+        });
+          
         int count = 0;
-        while (true) {
-            json user_data = {
-                {"id", count},
+        while (running) {
+            json data = {
+                {"source", "app_a"},
                 {"name", "User_" + std::to_string(count)},
-                {"age", 20 + (count % 50)},
-                {"email", "user" + std::to_string(count) + "@example.com"},
+                {"value", 20.0 + count},
                 {"timestamp", std::time(nullptr)}
             };
 
-            std::string user_json_str = user_data.dump();
-            pub.publish("user", user_json_str);
-            std::cout << "Published [user]: " << user_data.dump(2) << std::endl;
+            std::string json_str = data.dump();
+            pub.publish("app_a_data", json_str);
 
-            json sensor_data = {
-                {"sensor_id", "temp_sensor_01"},
-                {"temperature", 20.0 + (count % 10) * 0.5},
-                {"humidity", 50.0 + (count % 20) * 1.5},
-                {"timestamp", std::time(nullptr)}
-            };
-
-            std::string sensor_json_str = sensor_data.dump();
-            pub.publish("sensor", sensor_json_str);
-            std::cout << "Published [sensor]: " << sensor_data.dump(2) << std::endl;
-
-            std::cout << "---" << std::endl;
             count++;
-            std::this_thread::sleep_for(std::chrono::seconds(2));
+            std::this_thread::sleep_for(std::chrono::seconds(3));
         }
         
+        sub_b.stop_loop();
+        sub_c.stop_loop();
+        
     } catch (const std::exception& e) {
-        std::cerr << "Error: " << e.what() << std::endl;
+        std::cerr << "错误: " << e.what() << std::endl;
         return 1;
     }
     

@@ -1,6 +1,8 @@
 #include "../include/zmq_simple.hpp"
 #include <iostream>
 #include <string>
+#include <thread>
+#include <chrono>
 #include <csignal>
 #include <atomic>
 #include <nlohmann/json.hpp>
@@ -8,7 +10,6 @@
 using json = nlohmann::json;
 
 std::atomic<bool> running(true);
-
 void signal_handler(int signal) {
     running = false;
 }
@@ -18,62 +19,48 @@ int main(int argc, char* argv[]) {
     std::signal(SIGTERM, signal_handler);
     
     try {
-        zmq_simple::Subscriber sub("test_json", zmq_simple::Transport::IPC);
+        zmq_simple::Subscriber sub_a("A_publisher", zmq_simple::Transport::IPC);
+        zmq_simple::Subscriber sub_c("C_publisher", zmq_simple::Transport::IPC);
+        zmq_simple::Publisher pub("B_publisher", zmq_simple::Transport::IPC);
         
-        std::string topic = "";
-        if (argc > 1) {
-            topic = argv[1];
-            std::cout << "Subscribing to topic: " << topic << std::endl;
-        } else {
-            std::cout << "Subscribing to all topics" << std::endl;
-        }
-        sub.subscribe(topic);
+        sub_a.subscribe("");
+        sub_c.subscribe("");
         
-
-        while (running) {
-            std::string recv_topic;
-            std::vector<uint8_t> data;
-            
-            if (sub.receive(recv_topic, data, 1000)) {
-                try {
-                    json json_data = json::parse(data.begin(), data.end());
-                    
-                    std::cout << "Received [" << recv_topic << "]: " << std::endl;
-                    std::cout << json_data.dump(2) << std::endl;
-                    
-                    if (json_data.contains("name")) {
-                        std::cout << "  -> Name: " << json_data["name"] << std::endl;
-                    }
-                    if (json_data.contains("temperature")) {
-                        std::cout << "  -> Temperature: " << json_data["temperature"] << "°C" << std::endl;
-                    }
-                    
-                    std::cout << "---" << std::endl;
-                } catch (const json::exception& e) {
-                    std::cerr << "JSON Parse Error: " << e.what() << std::endl;
-                }
-            }
-        }
-        
-        /* 
-        sub.start_loop([](const std::string& topic, const std::vector<uint8_t>& data) {
+        sub_a.start_loop([&pub](const std::string& topic, const std::vector<uint8_t>& data) {
             try {
-                json json_data = json::parse(data.begin(), data.end());
-                std::cout << "收到 [" << topic << "]: " << json_data.dump(2) << std::endl;
+                json received = json::parse(data.begin(), data.end());
+                std::cout << "[收到] " << topic << ": " << received.dump() << std::endl;
             } catch (const json::exception& e) {
                 std::cerr << "JSON 解析错误: " << e.what() << std::endl;
             }
         });
         
+        sub_c.start_loop([&pub](const std::string& topic, const std::vector<uint8_t>& data) {
+            try {
+                json received = json::parse(data.begin(), data.end());
+                std::cout << "[收到] " << topic << ": " << received.dump() << std::endl;
+            } catch (const json::exception& e) {
+                std::cerr << "JSON 解析错误: " << e.what() << std::endl;
+            }
+        });
+
+
+        int count = 0;
         while (running) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            json response = {
+                {"source", "app_b"},
+                {"message", "from app_b"},
+                {"timestamp", std::time(nullptr)}
+            };
+            std::string json_str = response.dump();
+            pub.publish("app_b_data", json_str);
+            count++;
+            std::this_thread::sleep_for(std::chrono::seconds(3));
         }
-        
-        sub.stop_loop();
-        */
-        
+        sub_a.stop_loop();
+        sub_c.stop_loop();
     } catch (const std::exception& e) {
-        std::cerr << "Error: " << e.what() << std::endl;
+        std::cerr << "错误: " << e.what() << std::endl;
         return 1;
     }
     
