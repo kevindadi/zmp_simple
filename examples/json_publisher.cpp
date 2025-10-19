@@ -48,14 +48,11 @@ int main() {
         while (running) {
             json data = {
                 {"source", "app_a"},
-                {"name", "User_" + std::to_string(count)},
-                {"value", 20.0 + count},
+                {"message", "from app_a"},
                 {"timestamp", std::time(nullptr)}
             };
-
             std::string json_str = data.dump();
             pub.publish("app_a_data", json_str);
-
             count++;
             std::this_thread::sleep_for(std::chrono::seconds(3));
         }
