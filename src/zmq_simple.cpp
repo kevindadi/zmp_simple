@@ -73,7 +73,7 @@ public:
 private:
     std::string build_address(const std::string& endpoint, Transport transport) {
         if (transport == Transport::IPC) {
-            return "ipc:///tmp/" + endpoint + ".ipc";
+            return "ipc:///tmp/docker_share/" + endpoint + ".ipc";
         } else {
             return "inproc://" + endpoint;
         }
@@ -218,7 +218,7 @@ public:
 private:
     static std::string build_address(const std::string& endpoint, const Transport transport) {
         if (transport == Transport::IPC) {
-            return "ipc:///tmp/" + endpoint + ".ipc";
+            return "ipc:///tmp/docker_share/" + endpoint + ".ipc";
         } else {
             return "inproc://" + endpoint;
         }

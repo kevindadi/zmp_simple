@@ -1,0 +1,36 @@
+# App B: json_subscriber - C++ 应用
+
+FROM ubuntu:22.04 AS builder
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    cmake \
+    git \
+    libzmq3-dev \
+    pkg-config \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /build
+COPY . .
+
+RUN mkdir -p build && cd build && \
+    cmake .. && \
+    make json_subscriber
+
+FROM ubuntu:22.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y \
+    libzmq5 \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN mkdir -p /tmp/docker_share
+
+WORKDIR /app
+
+COPY --from=builder /build/build/examples/json_subscriber /app/json_subscriber
+
+CMD ["/app/json_subscriber"]
