@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.11)
 project(zmq_simple VERSION 1.0.0 LANGUAGES CXX C)
 
 set(CMAKE_CXX_STANDARD 14)
@@ -14,7 +14,6 @@ set(ENABLE_CPACK OFF CACHE BOOL "" FORCE)
 set(WITH_DOCS OFF CACHE BOOL "" FORCE)
     
 add_subdirectory(${LIBZMQ_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR}/libzmq EXCLUDE_FROM_ALL)
-    
 include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${LIBZMQ_SOURCE_DIR}/include
@@ -24,7 +23,7 @@ set(SOURCES src/zmq_simple.cpp)
 add_library(zmq_simple SHARED ${SOURCES})
     
 add_dependencies(zmq_simple libzmq-static)
-target_link_libraries(zmq_simple PRIVATE libzmq-static)
+target_link_libraries(zmq_simple PRIVATE libzmq-static )
 set_target_properties(zmq_simple PROPERTIES
     VERSION ${PROJECT_VERSION}
     SOVERSION 1
@@ -37,8 +36,13 @@ install(TARGETS zmq_simple
 )
 
 option(BUILD_EXAMPLES "Build example programs" ON)
+option(BUILD_PYTHON "Build Python bindings" ON)
 
 if(BUILD_EXAMPLES)
     add_subdirectory(examples)
+endif()
+
+if(BUILD_PYTHON)
+    add_subdirectory(python)
 endif()
 

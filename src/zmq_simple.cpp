@@ -1,15 +1,8 @@
-/**
- * @file zmq_simple.cpp
- * @brief ZeroMQ 简化封装的实现
- */
-
 #include "../include/zmq_simple.hpp"
 #include <zmq.h>
 #include <thread>
 #include <atomic>
 #include <cstring>
-#include <sstream>
-
 namespace zmq_simple {
 
 Context::Context() {
@@ -116,7 +109,7 @@ public:
         context_ = zmq_ctx_new();
         socket_ = zmq_socket(context_, ZMQ_SUB);
         
-        std::string addr = build_address(endpoint, transport);
+        const std::string addr = build_address(endpoint, transport);
         
         if (zmq_connect(socket_, addr.c_str()) != 0) {
             throw std::runtime_error("Failed to connect subscriber: " + std::string(zmq_strerror(zmq_errno())));
@@ -221,9 +214,9 @@ public:
             }
         }
     }
-    
+
 private:
-    std::string build_address(const std::string& endpoint, Transport transport) {
+    static std::string build_address(const std::string& endpoint, const Transport transport) {
         if (transport == Transport::IPC) {
             return "ipc:///tmp/" + endpoint + ".ipc";
         } else {

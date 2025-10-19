@@ -39,7 +39,7 @@ public:
 
     bool publish(const std::string& topic, const std::string& data);
     bool publish(const std::string& topic, const void* data, size_t size);
-
+   
 private:
     class Impl;
     std::unique_ptr<Impl> pimpl_;
