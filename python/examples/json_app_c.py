@@ -39,13 +39,12 @@ def main():
                 
                 received_count += 1
                 response = {
-                    "from": "app_c_python",
-                    "reply_to": received.get("from", "unknown"),
-                    "count": received_count,
-                    "ts": int(time.time())
+                    "name": "C",
+                    "message": "C to A",
+                    "count": received_count
                 }
-                pub.publish("app_c_data", json.dumps(response))
-                print(f"[C] {json.dumps(response)}")
+                pub.publish("CA", json.dumps(response))
+                print(f"[C Publish to A:] {json.dumps(response)}")
             except Exception as e:
                 print(f"错误: {e}")
         
@@ -59,11 +58,15 @@ def main():
         sub_a.start_loop(on_message_a)
         sub_b.start_loop(on_message_b)
         
+        toBcount = 0
         while running:
             time.sleep(3)
             
-            pub.publish("app_c_data", json.dumps({"source": "app_c_python", "message": "from app_c_python", "timestamp": int(time.time())}))
-              
+            message = {"name": "C", "message": "C to B", "count": toBcount}
+            pub.publish("CB", json.dumps(message))
+            print(f"[C Publish to B:] {json.dumps(message)}")
+            toBcount += 1
+
         sub_a.stop_loop()
         sub_b.stop_loop()
     

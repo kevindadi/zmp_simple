@@ -1,5 +1,5 @@
 services:
-  # App A: json_publisher (C++)
+  # App A: examples/json_publisher.cpp
   app_a:
     build:
       context: ..
@@ -11,7 +11,7 @@ services:
     networks:
       - zmq_network
 
-  # App B: json_subscriber (C++)
+  # App B: examples/json_subscriber.cpp
   app_b:
     build:
       context: ..
@@ -25,7 +25,7 @@ services:
     depends_on:
       - app_a
 
-  # App C: json_app_c.py (Python)
+  # App C: examples/json_app_c.py
   app_c:
     build:
       context: ..
