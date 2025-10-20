@@ -58,7 +58,7 @@ int main(int argc, char *argv[])
             pub.publish("app_b_data", json_str);
             std::cout << "[B Publish:] " << json_str << std::endl;
             count++;
-            std::this_thread::sleep_for(std::chrono::seconds(3));
+            std::this_thread::sleep_for(std::chrono::seconds(2));
         }
         sub_a.stop_loop();
         sub_c.stop_loop();

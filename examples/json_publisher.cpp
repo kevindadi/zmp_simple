@@ -58,7 +58,7 @@ int main()
             pub.publish("app_a_data", json_str);
             std::cout << "[A Publish:] " << json_str << std::endl;
             count++;
-            std::this_thread::sleep_for(std::chrono::seconds(3));
+            std::this_thread::sleep_for(std::chrono::seconds(1));
         }
 
         sub_b.stop_loop();

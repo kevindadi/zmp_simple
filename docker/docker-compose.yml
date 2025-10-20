@@ -22,8 +22,6 @@ services:
     restart: unless-stopped
     networks:
       - zmq_network
-    depends_on:
-      - app_a
 
   # App C: examples/json_app_c.py
   app_c:
@@ -36,9 +34,6 @@ services:
     restart: unless-stopped
     networks:
       - zmq_network
-    depends_on:
-      - app_a
-      - app_b
 
 volumes:
   zmq_sockets:
