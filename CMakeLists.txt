@@ -20,18 +20,28 @@ include_directories(
 )
     
 set(SOURCES src/zmq_simple.cpp)
+# 静态库版本 - 用于 Docker 和独立部署
+add_library(zmq_simple_static STATIC ${SOURCES})
+add_dependencies(zmq_simple_static libzmq-static)
+target_link_libraries(zmq_simple_static PUBLIC libzmq-static)
+set_target_properties(zmq_simple_static PROPERTIES
+    OUTPUT_NAME zmq_simple
+    PUBLIC_HEADER include/zmq_simple.hpp
+)
+
+# 动态库版本 - 用于 Python 绑定
 add_library(zmq_simple SHARED ${SOURCES})
-    
 add_dependencies(zmq_simple libzmq-static)
-target_link_libraries(zmq_simple PRIVATE libzmq-static )
+target_link_libraries(zmq_simple PRIVATE libzmq-static)
 set_target_properties(zmq_simple PROPERTIES
     VERSION ${PROJECT_VERSION}
     SOVERSION 1
     PUBLIC_HEADER include/zmq_simple.hpp
 )
 
-install(TARGETS zmq_simple
+install(TARGETS zmq_simple zmq_simple_static
     LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib
     PUBLIC_HEADER DESTINATION include
 )
 

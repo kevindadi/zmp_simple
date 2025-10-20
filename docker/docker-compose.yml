@@ -1,0 +1,45 @@
+services:
+  # App A: examples/json_publisher.cpp
+  app_a:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.app_a
+    container_name: zmq_app_a
+    volumes:
+      - zmq_sockets:/tmp/docker_share 
+    restart: unless-stopped
+    networks:
+      - zmq_network
+
+  # App B: examples/json_subscriber.cpp
+  app_b:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.app_b
+    container_name: zmq_app_b
+    volumes:
+      - zmq_sockets:/tmp/docker_share
+    restart: unless-stopped
+    networks:
+      - zmq_network
+
+  # App C: examples/json_app_c.py
+  app_c:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.app_c
+    container_name: zmq_app_c
+    volumes:
+      - zmq_sockets:/tmp/docker_share
+    restart: unless-stopped
+    networks:
+      - zmq_network
+
+volumes:
+  zmq_sockets:
+    driver: local
+
+networks:
+  zmq_network:
+    driver: bridge
+

@@ -1,0 +1,65 @@
+# App C: json_app_c.py
+
+FROM ubuntu:22.04 AS builder
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN sed -i 's/ports.ubuntu.com/mirrors.ustc.edu.cn/g' /etc/apt/sources.list || \
+    sed -i 's/archive.ubuntu.com/mirrors.ustc.edu.cn/g' /etc/apt/sources.list
+
+
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    cmake \
+    pkg-config \
+    python3 \
+    python3-dev \
+    pybind11-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /build
+
+COPY include/ ./include/
+COPY src/ ./src/
+COPY libzmq/ ./libzmq/
+COPY json-3.12.0/ ./json-3.12.0/
+COPY examples/CMakeLists.txt ./examples/CMakeLists.txt
+COPY python/ ./python/
+COPY CMakeLists.txt ./
+
+RUN cd json-3.12.0 && \
+    cmake -S . -B build \
+    -DJSON_BuildTests=OFF \
+    -DJSON_Install=ON && \
+    cmake --build build && \
+    cmake --install build
+
+RUN mkdir -p build && cd build && \
+    cmake .. \
+    -DBUILD_EXAMPLES=OFF \
+    -DBUILD_PYTHON=ON && \
+    cmake --build . -j$(nproc)
+
+FROM ubuntu:22.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y \
+    python3 \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN mkdir -p /tmp/docker_share
+
+WORKDIR /app
+
+COPY --from=builder /build/build/python/*.so /app/
+COPY --from=builder /build/build/lib*.so* /usr/local/lib/
+COPY python/examples/json_app_c.py /app/
+
+RUN ldconfig
+
+ENV PYTHONPATH=/app
+ENV LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+ENV PYTHONUNBUFFERED=1
+
+CMD ["python3", "-u", "/app/json_app_c.py"]

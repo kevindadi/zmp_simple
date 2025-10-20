@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+from pprint import pprint
 import sys
 import json
 import time
@@ -11,14 +12,13 @@ sys.path.insert(0, str(build_path))
 import zmq_simple
 
 running = True
-received_count = 0
 
 def signal_handler(sig, frame):
     global running
     running = False
 
 def main():
-    global running, received_count
+    global running
     
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
@@ -32,20 +32,9 @@ def main():
         sub_b.subscribe("")
         
         def on_message_a(topic, data):
-            global received_count
             try:
                 received = json.loads(data.decode('utf-8'))
                 print(f"[A→C] {json.dumps(received)}")
-                
-                received_count += 1
-                response = {
-                    "from": "app_c_python",
-                    "reply_to": received.get("from", "unknown"),
-                    "count": received_count,
-                    "ts": int(time.time())
-                }
-                pub.publish("app_c_data", json.dumps(response))
-                print(f"[C] {json.dumps(response)}")
             except Exception as e:
                 print(f"错误: {e}")
         
@@ -59,11 +48,19 @@ def main():
         sub_a.start_loop(on_message_a)
         sub_b.start_loop(on_message_b)
         
+        toBcount = 0
+        toAcount = 0
         while running:
             time.sleep(3)
-            
-            pub.publish("app_c_data", json.dumps({"source": "app_c_python", "message": "from app_c_python", "timestamp": int(time.time())}))
-              
+            messageA = {"name": "C", "message": "C to A", "count": toAcount}
+            pub.publish("CA", json.dumps(messageA))
+            print(f"[C Publish to A:] {json.dumps(messageA)}")
+            toAcount += 1
+            messageB = {"name": "C", "message": "C to B", "count": toBcount}
+            pub.publish("CB", json.dumps(messageB))
+            print(f"[C Publish to B:] {json.dumps(messageB)}")
+            toBcount += 1
+
         sub_a.stop_loop()
         sub_b.stop_loop()
     

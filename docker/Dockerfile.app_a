@@ -1,0 +1,45 @@
+FROM ubuntu:22.04 AS builder
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN sed -i 's/ports.ubuntu.com/mirrors.ustc.edu.cn/g' /etc/apt/sources.list || \
+    sed -i 's/archive.ubuntu.com/mirrors.ustc.edu.cn/g' /etc/apt/sources.list
+
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    cmake \
+    pkg-config \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /build
+
+COPY include/ ./include/
+COPY src/ ./src/
+COPY libzmq/ ./libzmq/
+COPY json-3.12.0/ ./json-3.12.0/
+COPY examples/ ./examples/
+COPY python/CMakeLists.txt ./python/CMakeLists.txt
+COPY CMakeLists.txt ./
+
+RUN cd json-3.12.0 && \
+    cmake -S . -B build \
+    -DJSON_BuildTests=OFF \
+    -DJSON_Install=ON && \
+    cmake --build build && \
+    cmake --install build
+
+RUN mkdir -p build && cd build && \
+    cmake .. \
+    -DBUILD_EXAMPLES=ON \
+    -DBUILD_PYTHON=OFF && \
+    cmake --build . -j$(nproc)
+
+FROM ubuntu:22.04
+
+RUN mkdir -p /tmp/docker_share
+
+WORKDIR /app
+
+COPY --from=builder /build/build/examples/json_publisher /app/json_publisher
+
+CMD ["/app/json_publisher"]
